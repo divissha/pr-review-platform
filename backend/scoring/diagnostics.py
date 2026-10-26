@@ -13,7 +13,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 from scoring.evaluate import evaluate
-from scoring.features import DATA_DIR, load_labeled_dataset
+from scoring.features import DATA_DIR, DATA_DIR, eligible_mask, load_labeled_dataset
 
 N_BOOT = 1000
 
@@ -83,7 +83,7 @@ def main():
     print(native.to_string())
 
         # ---- 4. Only PRs that actually change source code ----
-    mask = (df["n_source_files"] > 0).to_numpy()
+    mask = eligible_mask(df).to_numpy()
     sub_y = y[mask]
     print(f"\n4) PRs that change source code: {int(mask.sum())} PRs, "
           f"{int(sub_y.sum())} risky (random baseline PR-AUC ~ {sub_y.mean():.3f})\n")
