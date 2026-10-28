@@ -155,6 +155,7 @@ def score_with_llm(client, model, pr):
     result = parse_response(text)
     result["input_tokens"] = resp.usage.input_tokens
     result["output_tokens"] = resp.usage.output_tokens
+    result["served_model"] = resp.model 
     return result
 
 
