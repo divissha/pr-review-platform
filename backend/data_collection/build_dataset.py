@@ -32,6 +32,10 @@ CODE_EXT = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rb", ".rs",
             ".c", ".cc", ".cpp", ".h", ".cs", ".php", ".kt", ".swift"}
 REVERT_BODY_RE = re.compile(r"Reverts\s+[\w.\-]+/[\w.\-]+#(\d+)", re.I)
 REVERT_TITLE_RE = re.compile(r'^Revert\s+"(.+)"', re.I)
+REVERT_ANY_RE = re.compile(r"\brevert(s|ed)?\b|^\s*rev\s*:", re.I)
+REF_RE = re.compile(r"(?:#|gh-)(\d{2,6})")
+QUOTED_TITLE_RE = re.compile(r'"(.+?)"')
+BACKPORT_SUFFIX_RE = re.compile(r"\(#\d*(\u2026|\.\.\.)?\)?\s*$")
 FIX_RE = re.compile(r"\b(fix|fixes|fixed|hotfix|regression|bug)\b", re.I)
 
 NON_RISK_PREFIX_RE = re.compile(r"^(doc|docs|ci|mnt|maint|tst|test|style|typo|typ)\s*[:\-]", re.I)
@@ -70,7 +74,7 @@ def load_repo(path):
                 f["filename"] for f in p["files"]
                 if is_source_file(f["filename"]) and (f["additions"] + f["deletions"]) >= 3
             }
-            p["is_revert_pr"] = p["title"].lower().startswith("revert")
+            p["is_revert_pr"] = bool(REVERT_ANY_RE.search(p["title"]))
             prs.append(p)
     prs.sort(key=lambda p: p["merged_dt"])
     return prs
@@ -79,6 +83,7 @@ def load_repo(path):
 def label_repo(prs):
     # 1) which PRs got reverted?
     by_title = {p["title"]: p["number"] for p in prs}
+    numbers = {p["number"] for p in prs}
     reverted = set()
     for p in prs:
         if not p["is_revert_pr"]:
@@ -86,10 +91,14 @@ def label_repo(prs):
         m = REVERT_BODY_RE.search(p["body"] or "")
         if m:
             reverted.add(int(m.group(1)))
-        else:
-            t = REVERT_TITLE_RE.match(p["title"])
-            if t and t.group(1) in by_title:
-                reverted.add(by_title[t.group(1)])
+            continue
+        title = BACKPORT_SUFFIX_RE.sub("", p["title"])  # ignore a trailing "(#N)" backport marker
+        for quoted in QUOTED_TITLE_RE.findall(title):
+            if quoted in by_title:
+                reverted.add(by_title[quoted])
+        for n in REF_RE.findall(title):
+            if int(n) in numbers and int(n) != p["number"]:
+                reverted.add(int(n))
 
     # 2) hotfix / bug-reference labels from later "fix" PRs
     newest = prs[-1]["merged_dt"]
