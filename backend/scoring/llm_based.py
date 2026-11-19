@@ -10,6 +10,7 @@ Fairness notes
   - Freeze the prompt BEFORE the full run. Editing it after looking at results
     on the evaluation PRs would be tuning on ~30 positives.
 """
+import re
 import json
 import os
 from pathlib import Path
@@ -114,25 +115,50 @@ def label_for(score):
     return "high" if score >= 60 else "medium" if score >= 30 else "low"
 
 
+def _salvage(body):
+    """Recover the fields from a reply whose JSON is malformed (typically
+    unescaped quote characters inside the summary)."""
+    m = re.search(r'"risk_score"\s*:\s*(\d+(?:\.\d+)?)', body)
+    if not m:
+        raise ValueError("no risk_score found in malformed reply")
+    summ = re.search(r'"summary"\s*:\s*"(.*?)"\s*,\s*"risk_factors"', body, re.S)
+    facts = re.search(r'"risk_factors"\s*:\s*\[(.*)\]', body, re.S)
+    reasons = []
+    if facts:
+        parts = re.split(r'"\s*,\s*"', facts.group(1).strip())
+        reasons = [p.strip().strip('"').strip() for p in parts if p.strip().strip('"').strip()]
+    return {"risk_score": m.group(1), "summary": summ.group(1) if summ else "",
+            "risk_factors": reasons}
+
+
 def parse_response(text):
     """Extract {score, label, summary, reasons} from the model's reply.
     Raises ValueError if the reply can't be used."""
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end <= start:
         raise ValueError("no JSON object found in reply")
-    data = json.loads(text[start:end + 1])
+    body = text[start:end + 1]
+    repaired = False
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        data = _salvage(body)      # malformed JSON: salvage instead of failing
+        repaired = True
     score = int(round(float(data["risk_score"])))
     if not 0 <= score <= 100:
         raise ValueError(f"score out of range: {score}")
     factors = data.get("risk_factors") or []
     if not isinstance(factors, list):
         factors = [str(factors)]
-    return {
+    result = {
         "score": score,
         "label": label_for(score),
         "summary": str(data.get("summary", "")),
         "reasons": [str(x) for x in factors],
     }
+    if repaired:
+        result["repaired"] = True
+    return result
 
 
 # ------------------------------------------------------------------- API ----
@@ -147,15 +173,21 @@ def make_client():
 def score_with_llm(client, model, pr):
     resp = client.messages.create(
         model=model,
-        max_tokens=500,
+        max_tokens=4000,   # a ceiling only: you pay for tokens actually generated
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": build_user_prompt(pr)}],
     )
     text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
-    result = parse_response(text)
+    try:
+        result = parse_response(text)
+    except (ValueError, KeyError) as e:
+        kinds = [getattr(b, "type", "?") for b in resp.content]
+        raise ValueError(
+            f"{e} | stop_reason={resp.stop_reason} | blocks={kinds} "
+            f"| out_tokens={resp.usage.output_tokens} | reply starts: {text[:120]!r}")
     result["input_tokens"] = resp.usage.input_tokens
     result["output_tokens"] = resp.usage.output_tokens
-    result["served_model"] = resp.model 
+    result["served_model"] = resp.model
     return result
 
 
