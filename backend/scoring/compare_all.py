@@ -13,6 +13,7 @@ Run from backend/:
     python -m scoring.compare_all
 """
 import itertools
+import json
 
 import numpy as np
 import pandas as pd
@@ -107,6 +108,23 @@ def main():
     print(pairs.to_string(index=False))
     print(f"\n({len(pairs)} comparisons: at 95% expect about one to look 'significant' "
           f"by luck alone. Treat these as exploratory.)")
+
+    payload = {
+        "population": "eligible PRs: change source code, not docs/CI/typing/maintenance; "
+                      "backports and reverts removed",
+        "n_prs": int(len(df)),
+        "n_risky": int(y.sum()),
+        "random_baseline": {"roc_auc": 0.5, "pr_auc": float(y.mean()), "recall_top10": 0.10},
+        "methods": {},
+        "pairs": pair_rows,
+    }
+    for name, s in methods.items():
+        point = evaluate(y, s)
+        lo, hi = np.percentile(draws[name], [2.5, 97.5], axis=0)
+        payload["methods"][name] = {
+            m: {"value": float(point[m]), "lo": float(lo[i]), "hi": float(hi[i])}
+            for i, m in enumerate(METRICS)}
+    (DATA_DIR / "comparison_final.json").write_text(json.dumps(payload, indent=2))
 
     table.to_csv(DATA_DIR / "comparison_final.csv", index=False)
     pairs.to_csv(DATA_DIR / "comparison_pairs.csv", index=False)
