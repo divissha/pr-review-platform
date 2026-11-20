@@ -1,15 +1,19 @@
-const styles = {
-  low: "bg-green-100 text-green-700 border-green-300",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  high: "bg-red-100 text-red-700 border-red-300",
+const config = {
+  low: { color: "text-low", border: "border-low/40", bg: "bg-low/10", glyph: "▬" },
+  medium: { color: "text-medium", border: "border-medium/40", bg: "bg-medium/10", glyph: "▲" },
+  high: { color: "text-high", border: "border-high/40", bg: "bg-high/10", glyph: "▲▲" },
 };
 
 export default function RiskBadge({ level }) {
-  const cls = styles[level] || styles.medium;
+  if (!level) {
+    return <span className="font-mono text-xs text-dim">unscored</span>;
+  }
+  const c = config[level] || config.medium;
   return (
     <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${cls}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border font-mono text-xs ${c.color} ${c.border} ${c.bg}`}
     >
+      <span aria-hidden="true">{c.glyph}</span>
       {level}
     </span>
   );
