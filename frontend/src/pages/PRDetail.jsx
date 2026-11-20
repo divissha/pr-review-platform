@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getPRDetail, getComments, postComment } from "../api/mockApi";
+import { getPRDetail, getComments, postComment } from "../api/api";
 import ScoreCard from "../components/ScoreCard";
+
+const METHODS = [
+  { key: "rule_based", name: "Rule-based" },
+  { key: "ml_based", name: "ML-based" },
+  { key: "llm_based", name: "LLM-based" },
+];
+
+function DiffLine({ line }) {
+  let cls = "text-dim";
+  if (line.startsWith("+") && !line.startsWith("+++")) cls = "text-low bg-low/10";
+  else if (line.startsWith("-") && !line.startsWith("---")) cls = "text-high bg-high/10";
+  else if (line.startsWith("@@")) cls = "text-accent";
+  return <div className={`px-3 ${cls}`}>{line || " "}</div>;
+}
 
 export default function PRDetail() {
   const { id } = useParams();
@@ -9,88 +23,108 @@ export default function PRDetail() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    Promise.all([getPRDetail(id), getComments(id)]).then(
-      ([prData, commentData]) => {
+    Promise.all([getPRDetail(id), getComments(id)])
+      .then(([prData, commentData]) => {
         setPr(prData);
         setComments(commentData);
-        setLoading(false);
-      }
-    );
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [id]);
 
   async function handleAddComment(e) {
     e.preventDefault();
     if (!newComment.trim()) return;
-    const comment = await postComment(id, newComment);
-    setComments([...comments, comment]);
-    setNewComment("");
+    try {
+      const comment = await postComment(id, newComment);
+      setComments((prev) => [...prev, comment]);
+      setNewComment("");
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  if (loading) return <div className="p-8 text-gray-500">Loading…</div>;
-  if (!pr) return <div className="p-8 text-red-500">PR not found</div>;
+  if (loading) return <div className="p-8 text-dim font-mono text-sm">loading…</div>;
+  if (error && !pr) {
+    return <div className="p-8 text-high font-mono text-sm">Could not load this PR: {error}</div>;
+  }
+  if (!pr) return <div className="p-8 text-high font-mono text-sm">PR not found</div>;
+
+  const scores = pr.scores || {};
+  const hasOutcome = pr.actual_outcome !== null && pr.actual_outcome !== undefined;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Link to="/" className="text-sm text-gray-500 hover:underline">
-        ← Back to PR list
+    <div className="max-w-3xl mx-auto p-6">
+      <Link to="/" className="text-xs text-dim hover:text-accent font-mono">
+        ← back
       </Link>
-      <h1 className="text-2xl font-bold text-gray-900 mt-2 mb-1">
-        {pr.title}
-      </h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-xl font-medium text-text mt-2 mb-1">{pr.title}</h1>
+      <p className="text-xs text-dim font-mono mb-8">
         {pr.repo} · #{pr.pr_number}
       </p>
 
-      <section className="mb-6">
-        <h2 className="font-semibold text-gray-800 mb-2">AI Summary</h2>
-        <p className="text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-4">
-          {pr.summary}
+      <section className="mb-8">
+        <h2 className="text-sm text-dim mb-2">Summary</h2>
+        <p className="text-sm text-text leading-relaxed border-l-2 border-accent/40 pl-4">
+          {pr.summary || "No summary available."}
         </p>
       </section>
 
-      <section className="mb-6">
-        <h2 className="font-semibold text-gray-800 mb-2">Diff</h2>
-        <pre className="bg-gray-900 text-gray-100 text-sm rounded-lg p-4 overflow-x-auto">
-          {pr.diff}
-        </pre>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="font-semibold text-gray-800 mb-3">Risk Scores</h2>
-        <div className="flex flex-wrap gap-3">
-          <ScoreCard
-            methodName="Rule-based"
-            score={pr.scores.rule_based.score}
-            label={pr.scores.rule_based.label}
-            reasons={pr.scores.rule_based.reasons}
-          />
-          <ScoreCard
-            methodName="ML-based"
-            score={pr.scores.ml_based.score}
-            label={pr.scores.ml_based.label}
-            reasons={pr.scores.ml_based.reasons}
-          />
-          <ScoreCard
-            methodName="LLM-based"
-            score={pr.scores.llm_based.score}
-            label={pr.scores.llm_based.label}
-            reasons={pr.scores.llm_based.reasons}
-          />
+      <section className="mb-8">
+        <h2 className="text-sm text-dim mb-2">Diff</h2>
+        <div className="bg-panel border border-line rounded-md py-3 font-mono text-xs overflow-x-auto max-h-[28rem] overflow-y-auto">
+          {pr.diff
+            ? pr.diff.split("\n").map((line, i) => <DiffLine key={i} line={line} />)
+            : <div className="px-3 text-dim">(diff not available)</div>}
         </div>
       </section>
 
+      <section className="mb-8">
+        <h2 className="text-sm text-dim mb-1">Risk scores</h2>
+        <p className="text-xs text-dim mb-3">
+          Rule-based and LLM scores are 0–100 risk ratings. The ML score is a percentile rank
+          among all reviewed PRs.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {METHODS.map(({ key, name }) => {
+            const s = scores[key];
+            if (!s) {
+              return (
+                <div key={key} className="border border-line bg-panel rounded-md p-5 flex-1 min-w-[240px]">
+                  <span className="text-sm text-dim">{name}</span>
+                  <p className="text-sm text-dim mt-4">Not scored for this PR.</p>
+                </div>
+              );
+            }
+            return (
+              <ScoreCard key={key} methodName={name} score={s.score} label={s.label} reasons={s.reasons} />
+            );
+          })}
+        </div>
+      </section>
+
+      {hasOutcome && (
+        <section className="mb-8">
+          <h2 className="text-sm text-dim mb-2">What happened afterwards (proxy label)</h2>
+          <p className="text-sm text-text border border-line rounded-md px-4 py-3">
+            {pr.actual_outcome
+              ? "A later change reverted this PR, hot-fixed the same files, or cited it as the source of a bug."
+              : "No follow-up problem was detected within the observation window."}
+          </p>
+        </section>
+      )}
+
       <section>
-        <h2 className="font-semibold text-gray-800 mb-3">Comments</h2>
-        <div className="space-y-3 mb-4">
+        <h2 className="text-sm text-dim mb-3">Comments</h2>
+        {error && <p className="text-high text-xs font-mono mb-2">{error}</p>}
+        <div className="space-y-2 mb-3">
           {comments.map((c) => (
-            <div
-              key={c.id}
-              className="border border-gray-200 rounded-lg p-3 text-sm"
-            >
-              <span className="font-medium text-gray-800">{c.user}</span>{" "}
-              <span className="text-gray-600">{c.body}</span>
+            <div key={c.id} className="border border-line rounded-md px-3 py-2 text-sm">
+              <span className="text-accent font-mono text-xs">{c.user}</span>{" "}
+              <span className="text-text">{c.body}</span>
             </div>
           ))}
         </div>
@@ -100,11 +134,11 @@ export default function PRDetail() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment…"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="flex-1 bg-panel border border-line rounded-md px-3 py-2 text-sm text-text placeholder:text-dim focus:outline-none focus:border-accent"
           />
           <button
             type="submit"
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700"
+            className="bg-accent text-ink px-4 py-2 rounded-md text-sm font-medium hover:opacity-90"
           >
             Post
           </button>

@@ -25,7 +25,7 @@ export default function Login() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center gap-2 "
         >
           {loading ? "Signing in…" : "Sign in with GitHub"}
         </button>
