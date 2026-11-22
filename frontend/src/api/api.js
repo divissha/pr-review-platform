@@ -25,3 +25,5 @@ export const getComments = (id) => request(`/api/prs/${id}/comments/`);
 export const postComment = (id, body) =>
   request(`/api/prs/${id}/comments/`, { method: "POST", body: JSON.stringify({ body }) });
 export const getEvaluationSummary = () => request("/api/evaluation/summary/");
+export const analyzePR = (url) =>
+  request("/api/analyze/", { method: "POST", body: JSON.stringify({ url }) });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { getPRDetail, getComments, postComment } from "../api/api";
 import ScoreCard from "../components/ScoreCard";
 
@@ -19,6 +19,8 @@ function DiffLine({ line }) {
 
 export default function PRDetail() {
   const { id } = useParams();
+  const location = useLocation();
+  const warnings = location.state?.warnings || [];
   const [pr, setPr] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -62,9 +64,25 @@ export default function PRDetail() {
         ← back
       </Link>
       <h1 className="text-xl font-medium text-text mt-2 mb-1">{pr.title}</h1>
-      <p className="text-xs text-dim font-mono mb-8">
+            <p className="text-xs text-dim font-mono mb-8">
         {pr.repo} · #{pr.pr_number}
+        {pr.source === "live" && (
+          <span className="ml-2 text-accent border border-accent/40 rounded px-1.5 py-0.5">
+            live analysis
+          </span>
+        )}
       </p>
+
+      {warnings.length > 0 && (
+        <div className="mb-8 border border-medium/40 bg-medium/10 rounded-md px-4 py-3">
+          <p className="text-sm text-medium mb-1">Some parts of this analysis are incomplete</p>
+          <ul className="text-xs text-dim space-y-1">
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <section className="mb-8">
         <h2 className="text-sm text-dim mb-2">Summary</h2>
