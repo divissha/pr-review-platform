@@ -16,6 +16,8 @@ class PullRequest(models.Model):
     # Proxy ground truth from the labeling pipeline (reverted / hotfixed / bug-referenced).
     # Shown next to the predictions so reviewers can see what actually happened.
     actual_outcome = models.BooleanField(null=True, blank=True)
+        # "dataset" = part of the evaluation set, "live" = analysed on demand from a URL
+    source = models.CharField(max_length=10, default="dataset")
 
     class Meta:
         unique_together = ("repo", "number")
