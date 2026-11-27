@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getPRs, analyzePR } from "../api/api";
 import RiskBadge from "../components/RiskBadge";
+import Hero from "../components/Hero";
 
 export default function PRList() {
   const navigate = useNavigate();
@@ -84,7 +85,11 @@ export default function PRList() {
         {analyzeError && <p className="text-xs text-high font-mono mt-2">{analyzeError}</p>}
       </form>
 
+      {/* <div className="max-w-4xl mx-auto p-6"></div> */}
+        <Hero />
+
       <div className="flex items-baseline justify-between mb-4">
+        
         <h1 className="text-lg font-medium text-text">Pull requests</h1>
         <span className="text-xs text-dim font-mono">
           {shown.length} of {prs.length}

@@ -127,3 +127,9 @@ CORS_ALLOWED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],  # real GitHub login comes in week 4
 }
+
+# --- GitHub login: let the React app send the session cookie ---
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = ["http://localhost:5173"]
+SESSION_COOKIE_SAMESITE = "Lax"
+FRONTEND_URL = "http://localhost:5173"

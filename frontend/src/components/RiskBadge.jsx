@@ -1,20 +1,41 @@
-const config = {
-  low: { color: "text-low", border: "border-low/40", bg: "bg-low/10", glyph: "▬" },
-  medium: { color: "text-medium", border: "border-medium/40", bg: "bg-medium/10", glyph: "▲" },
-  high: { color: "text-high", border: "border-high/40", bg: "bg-high/10", glyph: "▲▲" },
+const COLORS = {
+  low: { bg: "#dafbe1", border: "#1a7f37", fg: "#116329" },
+  medium: { bg: "#fff8c5", border: "#bf8700", fg: "#7d4e00" },
+  high: { bg: "#ffebe9", border: "#cf222e", fg: "#a40e26" },
 };
 
 export default function RiskBadge({ level }) {
-  if (!level) {
-    return <span className="font-mono text-xs text-dim">unscored</span>;
-  }
-  const c = config[level] || config.medium;
+  const key = String(level || "").toLowerCase();
+  const c = COLORS[key] || { bg: "#f6f8fa", border: "#656d76", fg: "#424a53" };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border font-mono text-xs ${c.color} ${c.border} ${c.bg}`}
+      data-risk={key}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "2px 11px",
+        borderRadius: 999,
+        fontSize: "0.72rem",
+        fontWeight: 600,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        background: c.bg,
+        color: c.fg,
+        border: `1px solid ${c.border}`,
+        whiteSpace: "nowrap",
+      }}
     >
-      <span aria-hidden="true">{c.glyph}</span>
-      {level}
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: c.border,
+          display: "inline-block",
+        }}
+      />
+      {key || "n/a"}
     </span>
   );
 }

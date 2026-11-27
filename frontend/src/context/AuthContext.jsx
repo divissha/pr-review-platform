@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser, login as apiLogin, logout as apiLogout } from "../api/mockAuth";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -8,21 +8,30 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentUser().then((u) => {
-      setUser(u);
-      setLoading(false);
-    });
+    fetch(`${API}/api/auth/me/`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((me) =>
+        setUser(
+          me.authenticated
+            ? { username: me.login, name: me.name, avatar_url: me.avatar_url }
+            : null
+        )
+      )
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  async function login() {
-    const u = await apiLogin();
-    setUser(u);
-  }
+  const login = useCallback(() => {
+    window.location.href = `${API}/api/auth/github/login/`;
+  }, []);
 
-  async function logout() {
-    await apiLogout();
-    setUser(null);
-  }
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${API}/api/auth/logout/`, { method: "POST", credentials: "include" });
+    } finally {
+      setUser(null);
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
