@@ -12,11 +12,11 @@ class PullRequestListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PullRequest
-        fields = ["id", "repo", "pr_number", "title", "status", "created_at", "overall_risk"]
+        fields = ["id", "repo", "pr_number", "title", "status", "created_at",
+                  "overall_risk", "source"]
 
     def get_overall_risk(self, obj):
-        """Highest risk level any method assigned (a conservative flag)."""
-        labels = [s.label for s in obj.scores.all()]  # prefetched in the view
+        labels = [s.label for s in obj.scores.all()]
         return max(labels, key=RISK_ORDER.get) if labels else None
 
 
@@ -27,7 +27,8 @@ class PullRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = PullRequest
         fields = ["id", "repo", "pr_number", "title", "status", "diff", "files_changed",
-                  "additions", "deletions", "summary", "actual_outcome", "scores"]
+                  "additions", "deletions", "summary", "actual_outcome", "source",
+                  "static_analysis", "scores"]
 
     def get_scores(self, obj):
         return {s.method: {"score": s.score, "label": s.label, "reasons": s.reasons}

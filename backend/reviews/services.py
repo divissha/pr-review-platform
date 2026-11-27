@@ -19,6 +19,7 @@ def save_analysis(result):
         additions=rec["additions"],
         deletions=rec["deletions"],
         summary=result["summary"],
+        static_analysis=result.get("static_analysis"),
     )
     pr, created = PullRequest.objects.get_or_create(
         repo=rec["repo"], number=int(rec["number"]),

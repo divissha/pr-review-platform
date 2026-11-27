@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { getPRDetail, getComments, postComment } from "../api/api";
 import ScoreCard from "../components/ScoreCard";
+import StaticAnalysis from "../components/StaticAnalysis";
 
 const METHODS = [
   { key: "rule_based", name: "Rule-based" },
@@ -123,6 +124,8 @@ export default function PRDetail() {
           })}
         </div>
       </section>
+
+      {pr.static_analysis && <StaticAnalysis data={pr.static_analysis} />}
 
       {hasOutcome && (
         <section className="mb-8">
