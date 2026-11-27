@@ -95,6 +95,9 @@ class AnalyzeUrlTests(TestCase):
             mock.patch("scoring.llm_based.CACHE_DIR", self.cache),
             mock.patch.object(live, "fetch_pr", return_value=fake_record()),
             mock.patch.object(live, "make_client", return_value=object()),
+            mock.patch.object(live, "fetch_head", return_value=("octo/demo", "abc123")),
+            mock.patch.object(live, "analyze_static", return_value={
+                "tool": "bandit", "files_scanned": 0, "findings": [], "note": None}),
         ]
         for p in self.patches:
             p.start()

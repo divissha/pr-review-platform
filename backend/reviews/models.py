@@ -18,6 +18,8 @@ class PullRequest(models.Model):
     actual_outcome = models.BooleanField(null=True, blank=True)
         # "dataset" = part of the evaluation set, "live" = analysed on demand from a URL
     source = models.CharField(max_length=10, default="dataset")
+        # Bandit results for live PRs (see scoring/static_analysis.py). Evidence only, not part of any score.
+    static_analysis = models.JSONField(null=True, blank=True)
 
     class Meta:
         unique_together = ("repo", "number")

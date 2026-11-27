@@ -13,18 +13,21 @@ import joblib
 import numpy as np
 import pandas as pd
 import requests
+import sklearn
 
 from scoring.features import DATA_DIR, pr_features
 from scoring.llm_based import (DEFAULT_MODEL, load_cached, make_client,
                                save_cached, score_with_llm)
 from scoring.ml_based import make_matrix
 from scoring.rule_based import score_pr
+from scoring.static_analysis import analyze_static
 
 # data_collection/ holds plain scripts, so make its folder importable
 _DC = Path(__file__).resolve().parent.parent / "data_collection"
 if str(_DC) not in sys.path:
     sys.path.insert(0, str(_DC))
 from collect_prs import fetch_record  # noqa: E402
+from github_client import get as gh_get  # noqa: E402
 
 MODEL_DIR = DATA_DIR / "models"
 PR_URL_RE = re.compile(r"github\.com/([\w.\-]+)/([\w.\-]+)/pull/(\d+)", re.I)
@@ -61,6 +64,14 @@ def fetch_pr(repo, number):
         raise AnalysisError(f"Could not reach GitHub: {e}", 502)
 
 
+def fetch_head(repo, number):
+    """(repo that holds the PR's head commit, head commit sha). Forks are handled."""
+    detail = gh_get(f"/repos/{repo}/pulls/{number}").json()
+    head = detail.get("head") or {}
+    head_repo = (head.get("repo") or {}).get("full_name") or repo
+    return head_repo, head.get("sha")
+
+
 def percentile_label(pct):
     return "high" if pct >= 90 else "medium" if pct >= 70 else "low"
 
@@ -69,12 +80,19 @@ _ml_cache = {}
 
 
 def _load_ml():
-    """Returns (model, reference_probs) or None if the model hasn't been trained."""
+    """Returns (model, reference_probs), or None if the model hasn't been trained.
+    Raises RuntimeError if the model was saved by a different scikit-learn."""
     if "bundle" not in _ml_cache:
         model_path = MODEL_DIR / "logistic_regression.joblib"
         ref_path = MODEL_DIR / "reference_probs.json"
         if not (model_path.exists() and ref_path.exists()):
             return None          # not cached, so training later takes effect without a restart
+        meta_path = MODEL_DIR / "model_meta.json"
+        if meta_path.exists():
+            trained_with = json.loads(meta_path.read_text()).get("sklearn")
+            if trained_with and trained_with != sklearn.__version__:
+                raise RuntimeError(f"the saved model was trained with scikit-learn "
+                                   f"{trained_with} but {sklearn.__version__} is installed")
         _ml_cache["bundle"] = (joblib.load(model_path),
                                np.array(json.loads(ref_path.read_text())))
     return _ml_cache["bundle"]
@@ -98,18 +116,23 @@ def _in_training(repo, number):
 
 
 def analyze_url(url, llm_model=DEFAULT_MODEL, force=False):
-    """Returns {record, scores, summary, warnings}. A failing LLM or a missing ML
-    model never blocks the analysis: the other scores are still returned."""
+    """Returns {record, scores, summary, warnings, static_analysis}. A failing LLM,
+    a failing or missing ML model or a failing static analysis never blocks the
+    analysis: everything else is still returned."""
     repo, number = parse_pr_url(url)
     rec = fetch_pr(repo, number)
     features = pr_features(rec)
 
     scores, warnings, summary = {"rule_based": score_pr(features)}, [], ""
 
-    ml = ml_score(features)
-    if ml is None:
-        warnings.append("ML model not trained yet. Run: python -m scoring.train_final")
-    else:
+    ml = None
+    try:
+        ml = ml_score(features)
+        if ml is None:
+            warnings.append("ML model not trained yet. Run: python -m scoring.train_final")
+    except Exception as e:  # noqa: BLE001 - deliberately broad: degrade, don't fail
+        warnings.append(f"ML scoring failed ({e}). Re-train with: python -m scoring.train_final")
+    if ml is not None:
         scores["ml_based"] = ml
         if _in_training(repo, number):
             warnings.append("This PR was part of the model's training data, "
@@ -129,4 +152,14 @@ def analyze_url(url, llm_model=DEFAULT_MODEL, force=False):
     if not summary:
         summary = (f"{rec['changed_files']} files changed "
                    f"(+{rec['additions']}/-{rec['deletions']}). No LLM summary available.")
-    return {"record": rec, "scores": scores, "summary": summary, "warnings": warnings}
+
+    # Extra evidence only: never part of any score
+    static = None
+    try:
+        head_repo, sha = fetch_head(repo, number)
+        static = analyze_static(rec, head_repo, sha, gh_get)
+    except Exception as e:  # noqa: BLE001
+        warnings.append(f"Static analysis failed: {e}")
+
+    return {"record": rec, "scores": scores, "summary": summary,
+            "warnings": warnings, "static_analysis": static}

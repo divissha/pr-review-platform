@@ -27,7 +27,7 @@ class PullRequestApiTests(APITestCase):
         self.assertEqual(len(res.json()), 3)
         first = res.json()[0]
         self.assertEqual(set(first), {"id", "repo", "pr_number", "title", "status",
-                                      "created_at", "overall_risk"})
+                              "created_at", "overall_risk", "source"})
 
     def test_overall_risk_is_highest_label(self):
         by_number = {p["pr_number"]: p for p in self.client.get("/api/prs/").json()}
