@@ -1,0 +1,232 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --line: #d0d7de;
+  --line-soft: #eaeef2;
+  --ink: #1f2328;
+  --muted: #656d76;
+  --nav: #0d1117;
+  --accent: #0969da;
+  --accent-dark: #0550ae;
+  --low: #1a7f37;
+  --medium: #9a6700;
+  --high: #cf222e;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- top navigation bar (pure CSS) ---------- */
+body::before {
+  content: "GitHub Pull Risk Analyzer";
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: 56px; box-sizing: border-box; padding: 0 32px;
+  display: flex; align-items: center;
+  background: var(--nav); color: #f0f6fc;
+  font-size: 1.05rem; font-weight: 600; letter-spacing: .01em;
+  border-bottom: 1px solid #30363d;
+}
+body::after {
+  content: "Rule-based  |  Machine learning  |  LLM";
+  position: fixed; top: 0; right: 32px; z-index: 51;
+  height: 56px; display: flex; align-items: center;
+  color: #9198a1; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
+}
+#root { padding-top: 56px; min-height: 100vh; }
+@media (max-width: 720px) { body::after { display: none; } body::before { padding: 0 16px; } }
+
+/* ---------- page container ---------- */
+.max-w-3xl, .max-w-4xl, .max-w-5xl, .max-w-6xl { padding-top: 32px; padding-bottom: 48px; }
+
+/* ---------- headings ---------- */
+body h1 {
+  font-size: 1.6rem; font-weight: 700; letter-spacing: -.01em; color: var(--ink);
+  padding-bottom: 12px; border-bottom: 1px solid var(--line);
+}
+body h2 {
+  font-size: .78rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted);
+}
+body h3 { font-size: .95rem; font-weight: 600; color: var(--ink); }
+
+/* ---------- text colours ---------- */
+body .text-gray-500, body .text-gray-600 { color: var(--muted); }
+body .text-gray-800, body .text-gray-900 { color: var(--ink); }
+
+/* ---------- cards ---------- */
+body .border.rounded-lg {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+/* PR list rows: risk-coloured left edge */
+body a.block.border {
+  border-left-width: 4px; border-left-color: var(--line);
+  transition: background-color .12s ease, border-color .12s ease;
+}
+body a.block.border:hover { background: #f6f8fa; border-color: #afb8c1; }
+body a.block.border:has(.bg-green-100)  { border-left-color: var(--low); }
+body a.block.border:has(.bg-yellow-100) { border-left-color: var(--medium); }
+body a.block.border:has(.bg-red-100)    { border-left-color: var(--high); }
+body a.block.border .font-medium { font-weight: 600; }
+
+/* score cards: risk-coloured top edge */
+body .border.rounded-lg:has(h3):has(.bg-green-100)  { border-top: 3px solid var(--low); }
+body .border.rounded-lg:has(h3):has(.bg-yellow-100) { border-top: 3px solid var(--medium); }
+body .border.rounded-lg:has(h3):has(.bg-red-100)    { border-top: 3px solid var(--high); }
+
+/* big score number: solid, no effects */
+body .text-3xl.font-bold {
+  font-size: 2.4rem; font-weight: 700; line-height: 1.1; color: var(--ink);
+  letter-spacing: -.02em;
+}
+body .list-disc { color: var(--muted); font-size: .85rem; line-height: 1.55; }
+
+/* AI summary box */
+body .bg-gray-50 {
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent); border-radius: 8px;
+  color: var(--ink); line-height: 1.6;
+}
+
+/* ---------- risk badges ---------- */
+body span.rounded-full.border {
+  padding: 3px 12px; font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; border-radius: 999px;
+  border-width: 0 !important;
+}
+body .bg-green-100  { background: #1a7f37 !important; color: #ffffff !important; }
+body .bg-yellow-100 { background: #d4a72c !important; color: #1f2328 !important; }
+body .bg-red-100    { background: #cf222e !important; color: #ffffff !important; }
+
+/* ---------- buttons ---------- */
+body button.bg-gray-900, body button[type="submit"] {
+  background: var(--accent); color: #fff; border: 1px solid var(--accent-dark);
+  border-radius: 6px; font-weight: 600; box-shadow: none;
+  transition: background-color .12s ease;
+}
+body button.bg-gray-900:hover, body button[type="submit"]:hover { background: var(--accent-dark); }
+body button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ---------- inputs ---------- */
+body input[type="text"], body input:not([type]), body input[type="url"], body textarea {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--ink);
+}
+body input::placeholder, body textarea::placeholder { color: #8c959f; }
+body input:focus, body textarea:focus {
+  outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent);
+}
+
+/* ---------- code / diff ---------- */
+body pre {
+  background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-size: .8rem; line-height: 1.6;
+}
+
+/* ---------- tables ---------- */
+body table {
+  width: 100%; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; border-collapse: separate; border-spacing: 0; overflow: hidden;
+}
+body table th {
+  background: var(--bg); color: var(--muted); font-size: .72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+}
+body table td { padding: 11px 16px; border-bottom: 1px solid var(--line-soft); }
+body table tr:last-child td { border-bottom: 0; }
+body table tbody tr:hover td { background: #f6f8fa; }
+
+/* ---------- links ---------- */
+body a.text-sm { color: var(--accent); }
+body a.text-sm:hover { text-decoration: underline; }
+
+/* ---------- scrollbars ---------- */
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: #c1c8cf; border-radius: 6px; }
+
+/* ---------- wider layout ---------- */
+.max-w-3xl, .max-w-4xl, .max-w-5xl, .max-w-6xl {
+  max-width: 1280px !important;
+  width: 100%;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+}
+body::before { padding: 0 40px; }
+body::after  { right: 40px; }
+
+/* score cards: three equal columns when there is room */
+@media (min-width: 900px) {
+  body .flex.flex-wrap.gap-3 > .border { flex: 1 1 0; min-width: 0; }
+}
+
+@media (max-width: 720px) {
+  .max-w-3xl, .max-w-4xl, .max-w-5xl, .max-w-6xl {
+    padding-left: 16px !important; padding-right: 16px !important;
+  }
+  body::before { padding: 0 16px; }
+}
+
+/* ---------- GitHub sign-in in the top bar ---------- */
+body::after { display: none; }
+.authbar {
+  position: fixed; top: 0; right: 40px; height: 56px; z-index: 60;
+  display: flex; align-items: center; gap: 12px; color: #f0f6fc; font-size: .85rem;
+}
+.authbar-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #30363d; }
+.authbar-name { font-weight: 600; }
+.authbar-btn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 6px 14px; border-radius: 6px; font-size: .82rem; font-weight: 600;
+  background: #238636; color: #fff; border: 1px solid #2ea043; text-decoration: none;
+}
+.authbar-btn:hover { background: #2ea043; }
+.authbar-btn.ghost { background: transparent; color: #f0f6fc; border: 1px solid #30363d; }
+.authbar-btn.ghost:hover { background: #21262d; }
+.authbar-error { color: #ff8182; font-size: .78rem; cursor: pointer; }
+@media (max-width: 720px) { .authbar { right: 16px; } .authbar-name { display: none; } }
+
+/* ---------- real top navigation (replaces the CSS-drawn bar) ---------- */
+body::before, body::after { display: none !important; }
+#root { padding-top: 0 !important; }
+.authbar { display: none !important; }
+
+.topnav {
+  position: sticky; top: 0; z-index: 50; height: 56px; box-sizing: border-box;
+  padding: 0 40px; display: flex; align-items: center; justify-content: space-between;
+  background: #0d1117; border-bottom: 1px solid #30363d; color: #f0f6fc;
+}
+.topnav-left, .topnav-right { display: flex; align-items: center; gap: 8px; }
+.topnav-brand { font-weight: 600; font-size: 1.02rem; color: #f0f6fc; margin-right: 24px; text-decoration: none; }
+.topnav-link {
+  color: #9198a1; font-size: .88rem; font-weight: 500; text-decoration: none;
+  padding: 18px 12px; border-bottom: 2px solid transparent;
+}
+.topnav-link:hover { color: #f0f6fc; }
+.topnav-link.active { color: #f0f6fc; border-bottom-color: #58a6ff; }
+.topnav-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #30363d; }
+.topnav-user { font-size: .85rem; font-weight: 600; margin: 0 8px 0 4px; }
+.topnav-btn {
+  padding: 6px 14px; border-radius: 6px; font-size: .82rem; font-weight: 600; cursor: pointer;
+  background: #238636; color: #fff; border: 1px solid #2ea043;
+}
+.topnav-btn:hover { background: #2ea043; }
+.topnav-btn.ghost { background: transparent; color: #f0f6fc; border: 1px solid #30363d; }
+.topnav-btn.ghost:hover { background: #21262d; }
+@media (max-width: 720px) {
+  .topnav { padding: 0 16px; }
+  .topnav-brand { display: none; }
+  .topnav-user { display: none; }
+}
